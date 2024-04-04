@@ -1,0 +1,15 @@
+[package]
+name = "msdk-adapter"
+version = "0.1.0"
+edition = "2021"
+description = "A simple adapter for msdk"
+license = "Apache-2.0"
+repository = "https://github.com/SONGSONGBOBO/msdk-adapter"
+keywords = ["msdk", "Keyboard-drive", "mouse-drive"]
+include = ["msdk.lib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "*"
+anyhow = "*"
