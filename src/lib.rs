@@ -27,6 +27,21 @@ impl MsdkAdapter {
     }
 }
 
+pub trait MsdkKeyBoardOperation {
+    fn open(&mut self, port_num: u64) -> Result<u64>;
+    fn close(&self) -> Result<i32>;
+    // windows keycode ascii
+    fn key_press(&self, key_code: i32, count: i32) -> Result<i32>;
+    fn key_down(&self, key_code: i32) -> Result<i32>;
+    fn key_up(&self, key_code: i32) -> Result<i32>;
+    fn all_key_up(&self) -> Result<i32>;
+}
+
+pub trait MsdkMouseOperation {
+    fn left_click(&self, count: i32) -> Result<i32>;
+    fn left_double_click(&self, count: i32) -> Result<i32>;
+}
+
 fn check_result(result: i32) -> Result<i32> {
     match result {
         SUCCESS => Ok(result),
@@ -36,18 +51,12 @@ fn check_result(result: i32) -> Result<i32> {
     }
 }
 
-pub trait MsdkOperation {
-    fn open(&mut self, port_num: u64) -> Result<u64>;
-    fn close(&self) -> Result<i32>;
-    fn key_press(&self, key_code: i64, count: i64) -> Result<i64>;
-}
-
-impl MsdkOperation for MsdkAdapter {
+impl MsdkKeyBoardOperation for MsdkAdapter {
     fn open(&mut self, port_num: u64) -> Result<u64> {
         unsafe {
             self.close().expect(&format!("Open port{} fail.", port_num));
-            let open_func: Symbol<extern "C" fn(u64) -> u64> = self.lib.get(b"M_Open")?;
-            let handler = open_func(self.port);
+            let func: Symbol<extern "C" fn(u64) -> u64> = self.lib.get(b"M_Open")?;
+            let handler = func(self.port);
             self.handler = handler;
             self.port = port_num;
             Ok(handler)
@@ -56,28 +65,41 @@ impl MsdkOperation for MsdkAdapter {
 
     fn close(&self) -> Result<i32> {
         unsafe {
-            let func: Symbol<extern "C" fn(u64) -> i32> = self.lib.get(b"M_Close").unwrap();
+            let func: Symbol<extern "C" fn(u64) -> i32> = self.lib.get(b"M_Close")?;
             let res = func(self.handler);
             check_result(res)
         }
     }
 
-    fn key_press(&self, key_code: i64, count: i64) -> Result<i64> {
-        Ok(0)
+    fn key_press(&self, key_code: i32, count: i32) -> Result<i32> {
+        unsafe {
+            let func: Symbol<extern "C" fn(u64, i32, i32) -> i32> = self.lib.get(b"M_KeyPress2")?;
+            let res = func(self.handler, key_code, count);
+            check_result(res)
+        }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use std::time::{SystemTime};
-    use super::*;
+    fn key_down(&self, key_code: i32) -> Result<i32> {
+        unsafe {
+            let func: Symbol<extern "C" fn(u64, i32) -> i32> = self.lib.get(b"M_KeyDown2")?;
+            let res = func(self.handler, key_code);
+            check_result(res)
+        }
+    }
 
-    #[test]
-    fn it_works() {
-        println!("start{:?}",SystemTime::now());
-        let msdk = MsdkAdapter::new(1).unwrap();
-        println!("{:?}--{:?}", msdk.handler, SystemTime::now());
-        let res = msdk.close().expect("TODO: panic message");
-        println!("{:?}", res)
+    fn key_up(&self, key_code: i32) -> Result<i32> {
+        unsafe {
+            let func: Symbol<extern "C" fn(u64, i32) -> i32> = self.lib.get(b"M_KeyUp2")?;
+            let res = func(self.handler, key_code);
+            check_result(res)
+        }
+    }
+
+    fn all_key_up(&self) -> Result<i32> {
+        unsafe {
+            let func: Symbol<extern "C" fn(u64) -> i32> = self.lib.get(b"M_ReleaseAllKey")?;
+            let res = func(self.handler);
+            check_result(res)
+        }
     }
 }
